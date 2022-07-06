@@ -85,7 +85,9 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
         lastRequest = request
         timerCancellables.forEach({ $0.cancel() })
         
-        if cacheConfig.usagePolicy == .useIfFetchFails {
+        if cacheConfig.usagePolicy == .useIfFetchFails
+            || (cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails
+                && state.isFailed) {
             state = .loading
         }
 
