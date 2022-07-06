@@ -16,6 +16,7 @@ public struct QueryCacheConfig {
         case useInsteadOfFetching
         case useIfFetchFails
         case useAndThenFetch
+        case useAndThenFetchIgnoringFails
     }
     
     let invalidationPolicy: InvalidationPolicy
