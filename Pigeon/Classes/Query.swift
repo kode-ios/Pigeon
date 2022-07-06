@@ -161,27 +161,12 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
         
         fetcher(request)
             .sink(
-                receiveCompletion: { (completion: Subscribers.Completion<Error>) in
-                    switch completion {
-                    case let .failure(error):
-                        self.timerCancellables.forEach({ $0.cancel() })
-                        if self.cacheConfig.usagePolicy == .useIfFetchFails ||
-                            self.cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails {
-                            if let value = self.getCacheValueIfPossible(for: key) {
-                                self.state = .succeed(value)
-                            } else {
-                                self.state = .failed(error)
-                            }
-                        } else {
-                            self.state = .failed(error)
-                        }
-                    case .finished:
-                        break
-                    }
+                receiveCompletion: { [weak self] (completion: Subscribers.Completion<Error>) in
+                    self?.process(completion: completion)
                 },
-                receiveValue: { (response: Response) in
-                    self.state = .succeed(response)
-                    self.cache.save(
+                receiveValue: { [weak self] (response: Response) in
+                    self?.set(state: .succeed(response))
+                    self?.cache.save(
                         response,
                         for: key,
                         andTimestamp: Date()
@@ -189,5 +174,30 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
                 }
             )
             .store(in: &cancellables)
+    }
+
+    private func process(completion: Subscribers.Completion<Error>) {
+        switch completion {
+        case let .failure(error):
+            timerCancellables.forEach({ $0.cancel() })
+            if cacheConfig.usagePolicy == .useIfFetchFails ||
+                cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails {
+                if let value = getCacheValueIfPossible(for: key) {
+                    set(state: .succeed(value))
+                } else {
+                    set(state: .failed(error))
+                }
+            } else {
+                set(state: .failed(error))
+            }
+        case .finished:
+            break
+        }
+    }
+
+    private func set(state: State) {
+        DispatchQueue.main.async {
+            self.state = state
+        }
     }
 }
