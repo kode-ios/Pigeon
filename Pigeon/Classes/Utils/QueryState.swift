@@ -22,4 +22,11 @@ public enum QueryState<Response> {
             return nil
         }
     }
+
+    public var isFailed: Bool {
+        if case .failed = self {
+            return true
+        }
+        return false
+    }
 }
