@@ -97,7 +97,8 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
         switch behavior {
         case .startWhenRequested:
             if cacheConfig.usagePolicy == .useInsteadOfFetching
-                || cacheConfig.usagePolicy == .useAndThenFetch {
+                || cacheConfig.usagePolicy == .useAndThenFetch
+                || cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails {
                 if let cachedResponse: Response = self.getCacheValueIfPossible(for: key) {
                     state = .succeed(cachedResponse)
                 }
@@ -149,7 +150,8 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
             return
         }
         
-        if self.cacheConfig.usagePolicy == .useAndThenFetch {
+        if self.cacheConfig.usagePolicy == .useAndThenFetch
+            || self.cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails {
             if let value = getCacheValueIfPossible(for: key) {
                 self.state = .succeed(value)
             }
@@ -161,7 +163,8 @@ public final class Query<Request, Response: Codable>: ObservableObject, QueryTyp
                     switch completion {
                     case let .failure(error):
                         self.timerCancellables.forEach({ $0.cancel() })
-                        if self.cacheConfig.usagePolicy == .useIfFetchFails {
+                        if self.cacheConfig.usagePolicy == .useIfFetchFails ||
+                            self.cacheConfig.usagePolicy == .useAndThenFetchIgnoringFails {
                             if let value = self.getCacheValueIfPossible(for: key) {
                                 self.state = .succeed(value)
                             } else {
